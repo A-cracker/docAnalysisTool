@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="JavaToolDemo" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="tool-sdk" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="JavaToolDemo" options="-extdirs E:\lab\wetoband\file-extraction/lib;WebRoot/WEB-INF/lib" />
+      <module name="JavaToolDemo4" options="-extdirs D:\lab\code\keywords\JavaToolDemo4\JavaToolDemo4/lib;WebRoot/WEB-INF/lib" />
+    </option>
+  </component>
+</project>

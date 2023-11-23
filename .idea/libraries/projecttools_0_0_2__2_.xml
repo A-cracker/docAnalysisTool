@@ -1,0 +1,20 @@
+<component name="libraryTable">
+  <library name="projecttools-0.0.2 (2)">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/projecttools-0.0.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/tool-sdk-4.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/toolconstants-4.5.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/tre-public-moudle-1.2.11.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/wtbutil-1.0.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/custom-lib/toolhelper-2.0.11.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/projecttools-0.0.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/tool-sdk-4.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/toolconstants-4.5.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/tre-public-moudle-1.2.11.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/wtbutil-1.0.5.jar!/" />
+    </SOURCES>
+  </library>
+</component>

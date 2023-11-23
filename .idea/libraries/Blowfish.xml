@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Blowfish">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/Blowfish.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/custom-lib/Blowfish.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/lib/Blowfish.jar!/" />
+      <root url="jar://$PROJECT_DIR$/WebRoot/WEB-INF/custom-lib/Blowfish.jar!/" />
+    </SOURCES>
+  </library>
+</component>
