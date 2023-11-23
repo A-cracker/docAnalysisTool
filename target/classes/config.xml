@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Config>
+	<!-- 开发包版本，重要参数，如不了解作用，切勿修改 -->
+	<SDKVersion>4.0</SDKVersion>
+	<!-- 需要加载器加载的类(入口类)的全名 -->
+	<EntryClass>com.wtb.javatool.action.JavaTool</EntryClass>
+	<VoPackage>com.wtb.javatool.vo</VoPackage>>
+	<!-- 工具配置参数 -->
+	<toolConfig>{}</toolConfig>
+	<!-- 普通声明式调用配置 -->
+	<UrlAlias name="abc">http://127.0.0.1:8080</UrlAlias>
+</Config>
