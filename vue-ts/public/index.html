@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title><%= htmlWebpackPlugin.options.title %></title>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  </body>
+  <script>
+    window.addEventListener('message', function (event) {
+      var data = event.data;
+      if (data.actionUrl) {
+        window.g_actToolUrl = data.actionUrl;
+        window.g_runToolUrl = data.runToolUrl;
+        window.g_forwardUrl = data.forwardUrl;
+        window.g_resourceUrl = data.resourceUrl;
+        window.g_userId = data.userID;
+        window.g_accessToken = data.accessToken;
+        window.g_bandId = data.bandID;
+        window.g_param = data.param;
+        window.g_rtParam = data.rtParam;
+        window.g_clientType = data.clientType;
+        window.g_toolId = data.toolID;
+        window.g_coreUrl = data.coreUrl;
+        window.g_aid = data.aid;
+      }
+    });
+  </script>
+</html>
