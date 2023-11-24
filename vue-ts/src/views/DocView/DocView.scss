@@ -12,15 +12,13 @@
   }
 }
 .detail{
-  background: #f1f0f0;
   display: flex;
   flex-direction: column;
   .search {
-    background: #cccccc30;
     padding:1px 2px;
   }
   .content-card {
-    background: #cccccc30;
+    background: #FFFFFF;
     margin: 0 2px 2px 2px;
     flex-grow: 1;
   }
@@ -154,5 +152,16 @@
     padding-bottom: 8px;
     margin-bottom: 8px;
     border-bottom: 1px solid currentColor;
+  }
+}
+.float-button{
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 42px;
+  height: 42px;
+  z-index: 10;
+  &:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.48); /* 添加阴影效果 */
   }
 }

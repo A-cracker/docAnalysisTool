@@ -18,4 +18,6 @@ public interface AnalysisPointMapper {
      Integer selectRootByFid(@Param("fid")String fid);
      @Delete("delete from analysis_points where id = #{id}")
      void deleteApById(@Param("id") int id);
+     @Update("update analysis_points set name = #{name} where id=#{id}")
+     void updateAnalysisNameById(@Param("name") String name, @Param("id") int id);
 }

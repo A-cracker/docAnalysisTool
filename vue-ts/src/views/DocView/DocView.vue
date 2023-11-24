@@ -18,15 +18,16 @@
               :collapsable="collapsable"
               :label-style="style"
               :node-draggable="true"
+              :default-expand-level="level"
               :only-one-node="onlyOneNode"
               :selected-class-name="selectedClassName"
               :selected-key="focusNode"
-              :default-expand-level="1"
               :filter-node-method="filterNodeMethod"
               :clone-node-drag="cloneNodeDrag"
               :define-menus="defineMenus"
               :node-add="NodeAdd"
               :node-delete="NodeDelete"
+              :node-edit="NodeEdit"
               @on-restore="restore"
               @on-contextmenu="onMenus"
               @on-node-click="onNodeClick"
@@ -95,6 +96,7 @@
           </el-col>
         </el-scrollbar>
       </div>
+      <el-button class="float-button" circle type="primary" :icon="Plus" @click="alert()"></el-button>
     </div>
   </div>
   <el-dialog v-model="extractionDialogVisible" title="解析文件" width="30%" align-center>
@@ -137,7 +139,7 @@
   >
     <el-form label-position="top" label-width="100px" style="max-width: 460px">
       <el-form-item label="分析点名：">
-        <el-input placeholder="请填写分析点名" v-model="analysisName"></el-input>
+        <el-input placeholder="请输入新的分析点名" v-model="analysisName"></el-input>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -155,12 +157,32 @@
       width="30%"
       align-center
   >
-    如果该分析点下有其余内容，是否将其另存到新分析点？
+    如果该分析点下有其余分析点，是否将其另存到新的分析节点？
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="deleteAnalysisPoint(0)" type="primary" plain>另存内容</el-button>
+        <el-button @click="deleteAnalysisPoint(0)" type="primary" plain>另存分析点</el-button>
         <el-button @click="deleteAnalysisPoint(1)" type="danger" plain>
           一律删除
+        </el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <el-dialog
+      v-model="editAnalysisPointDialog"
+      title="修改名称"
+      width="30%"
+      align-center
+  >
+    <el-form label-position="top" label-width="100px" style="max-width: 460px">
+      <el-form-item label="分析点名：">
+        <el-input placeholder="请输入分析点名" v-model="analysisEditedName"></el-input>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="editAnalysisPointDialog = false">取消</el-button>
+        <el-button type="primary" @click="editAnalysisPoint">
+          确认修改
         </el-button>
       </span>
     </template>
@@ -170,7 +192,7 @@
 <script setup lang="ts">
 import {ref, onMounted, getCurrentInstance, ComponentInternalInstance, inject,computed} from 'vue';
 import {ElMessage, TableColumnCtx} from "element-plus";
-import {Search,FullScreen} from "@element-plus/icons-vue";
+import {Search,Plus} from "@element-plus/icons-vue";
 import {HttpClient} from "@/network/HttpClient";
 import { useStore } from 'vuex'
 import { key } from '@/store'
@@ -188,6 +210,7 @@ const horizontal = ref(false);
 const collapsable = ref(true);
 const onlyOneNode = ref(false);
 const cloneNodeDrag = ref(true);
+const level = ref(0);
 
 //文本解析对话框
 const extractionDialogVisible = ref(false)
@@ -295,6 +318,7 @@ const defineMenus = ref([
   { name:'修改名称', command: 'edit' },
 ])
 //在原先的功能上增加功能
+
 const onMenus = ({ node, command }) => {
   console.log(node, command,node.id);
   focusNode.value = node.id;
@@ -310,13 +334,35 @@ const onMenus = ({ node, command }) => {
       break
   }
 }
+
+//覆盖原来的编辑
+const editAnalysisPointDialog = ref(false)
+const analysisEditedName =ref("")
+
+const NodeEdit = (node) =>{
+  console.log(node.label)
+  focusNode.value = node.id;
+  editAnalysisPointDialog.value = true
+}
+const editAnalysisPoint = async () =>{
+  if(analysisEditedName.value == ""){
+    ElMessage({message:"分析点名不得为空",type:'warning'});
+  }else {
+    await HttpClient.post("editAnalysisPoint", {id: focusNode.value, name: analysisEditedName.value}).then(res => {
+      if (res.result) {
+        ElMessage({message: "编辑成功", type: 'success'});
+        buildTree(rootId.value,fileChosen.value.currDocumentVersion.storageID)
+        editAnalysisPointDialog.value = false
+      }
+    });
+  }
+}
 //覆盖原来的新增
 const addAnalysisPointDialog = ref(false)
 const analysisName = ref('')
 const NodeAdd = (node) =>{
   focusNode.value = node.id;
   addAnalysisPointDialog.value = true
-  console.log(focusNode.value)
 }
 const addAnalysisPoint = async () => {
   let fid = fileChosen.value.currDocumentVersion.storageID
@@ -368,10 +414,10 @@ const filterNodeMethod = (value, data) => {
 }
 
 const onNodeClick = async (e, data) => {
+  console.log(data)
   focusNode.value =data.id;
   ElMessage({message:data.label,type:'success'});
-  const focus =focusNode.value;
-  await HttpClient.post("getContentById",{id:focus}).then(res => {
+  await HttpClient.post("getContentById",{id:focusNode.value}).then(res => {
     contents.value = res.result
     console.log(contents.value)
   });
@@ -393,6 +439,16 @@ const filterFile = (fileLists) =>{
 }
 //控制加载
 const loading = ref(false)
+const buildTree = async (root,fid)=>{
+  await HttpClient.post("buildTree", {root: root, fid: fid}).then(res => {
+    delete res.result.tree[0].pid;
+    store.commit('tree/setTreeData', res.result.tree[0])
+    data.value = store.getters["tree/getTreeData"] || {};
+    level.value = res.result.layer - 1
+    loading.value = false
+    // data.value = res.result[0];
+  })
+}
 //解析文件
 const extraction = async() => {
   if(templateType.value==null){
@@ -416,13 +472,7 @@ const extraction = async() => {
       })
       let temp_f = fid.value;
       let temp_r = rootId.value;
-      await HttpClient.post("buildTree", {root: temp_r, fid: temp_f}).then(res => {
-        delete res.result[0].pid;
-        store.commit('tree/setTreeData', res.result[0])
-        data.value = store.getters["tree/getTreeData"] || {};
-        loading.value = false
-        // data.value = res.result[0];
-      })
+      await buildTree(temp_r,temp_f);
     }
   }
 }
@@ -437,12 +487,7 @@ const useHistoryVersion = async() =>{
   })
   if(root!=0) {
     loading.value = true
-    await HttpClient.post("buildTree", {root: root, fid: storageID}).then(res => {
-      delete res.result[0].pid;
-      store.commit('tree/setTreeData', res.result[0])
-      data.value = store.getters["tree/getTreeData"] || {};
-      loading.value = false
-    })
+    await buildTree(root,storageID)
   }
 }
 
@@ -462,13 +507,7 @@ const reExtraction = async() =>{
   })
   let temp_f = fid.value;
   let temp_r = rootId.value;
-  await HttpClient.post("buildTree", {root: temp_r, fid: temp_f}).then(res => {
-    delete res.result[0].pid;
-    store.commit('tree/setTreeData', res.result[0])
-    data.value = store.getters["tree/getTreeData"] || {};
-    loading.value = false
-    // data.value = res.result[0];
-  })
+  await buildTree(temp_r,temp_f)
 }
 
 const parseHeader = (content) =>{

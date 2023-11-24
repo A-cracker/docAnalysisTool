@@ -133,11 +133,15 @@ public class JavaTool extends ActionToolBase {
         int root = RequestUtils.getIntegerParameter(request, "root");
         String fid = RequestUtils.getStringParameter(request, "fid");
         List<Node> result = analysisService.bulidTree(root, fid);
-        return R.ok().MAP().PRINT().result(result);
+        Integer layer = analysisService.getTreeLayer(fid);
+        Map<String,Object> res= new HashMap<>();
+        res.put("tree",result);
+        res.put("layer",layer);
+        return R.ok().MAP().PRINT().result(res);
     }
 
     /**
-     * 获取相应分析点的内容
+     * 获取相应分析点的内容ti
      */
     @Action
     public R getContentById(HttpServletRequest request) {
@@ -327,5 +331,15 @@ public class JavaTool extends ActionToolBase {
             res.put("msg","删除失败,不可删除根节点");
         }
         return R.ok().MAP().PRINT().result(res);
+    }
+    /**
+     * 修改分析点名
+     */
+    @Action
+    public R editAnalysisPoint(HttpServletRequest request) throws Exception {
+        int id = RequestUtils.getIntegerParameter(request, "id");
+        String name = RequestUtils.getStringParameter(request, "name");
+        analysisService.editAnalysisName(id,name);
+        return R.ok().MAP().PRINT().result(true);
     }
 }

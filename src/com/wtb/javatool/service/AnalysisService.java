@@ -18,4 +18,6 @@ public interface AnalysisService {
     public void deleteTree(String fid);
     public AnalysisPoint addAnalysisPoint(int pid,String fid, String name);
     public boolean deleteAnalysisPoint(int id,String fid,int root,int type);
+    public int getTreeLayer(String fid);
+    public void editAnalysisName(int id,String name);
 }

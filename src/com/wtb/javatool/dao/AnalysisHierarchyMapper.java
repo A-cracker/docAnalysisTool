@@ -26,4 +26,6 @@ public interface AnalysisHierarchyMapper {
     void deleteAlByPid(@Param("fid")int pid);
     @Select("select * from analysis_hierarchy where pid = #{pid}")
     List<AnalysisLink> getAlsByPid(@Param("fid")int pid);
+    @Select("select max(layer) from analysis_hierarchy where fid = #{fid} LIMIT 1")
+    Integer getTreeLayer(@Param("fid")String fid);
 }

@@ -183,6 +183,14 @@ public class AnalysisServiceImpl implements AnalysisService {
             analysisContentMapper.deleteAcById(cid);
         }
     }
+    @Override
+    public int getTreeLayer(String fid){
+        return analysisHierarchyMapper.getTreeLayer(fid);
+    }
+    @Override
+    public void editAnalysisName(int id,String name){
+        analysisPointMapper.updateAnalysisNameById(name, id);
+    }
 }
 
 
