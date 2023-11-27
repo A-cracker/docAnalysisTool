@@ -83,6 +83,7 @@
   /*右侧div'样式*/
   .mid {
     float: left;
+    z-index:1;
     width: 100%;   /*右侧初始化宽度*/
     height: 100%;
     background: #fff;
@@ -130,12 +131,16 @@
 }
 .search-box {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
   align-items: center;
   padding: 8px 15px;
   position: absolute;
   top: 0;
   left: 0;
+  .search-text{
+    white-space: nowrap;
+  }
   input {
     width: 200px;
     height: 32px;
@@ -155,7 +160,7 @@
   }
 }
 .float-button{
-  position: absolute;
+  position: fixed;
   bottom: 10px;
   right: 10px;
   width: 42px;

@@ -3,11 +3,17 @@
     <div class="tree left">
       <div class="tree-wrap" style="height: 100%;">
         <div class="search-box">
-          <span>搜索：</span>
+          <span class="search-text">搜索：</span>
           <input type="text" v-model="keyword" placeholder="请输入搜索内容" @keydown.enter="filter" />
           <div style="margin: 0 2px;display: inline-block"><el-button @click="filter" :icon="Search"></el-button></div>
-          <div>
+          <div style="margin-right: 2px">
             <el-button @click="extractionDialogVisible = true" plain type="primary">解析文件</el-button>
+          </div>
+          <div>
+            <el-select v-model="version" placeholder="版本选择">
+              <el-option label="V1.0" value="1"/>
+              <el-option label="V2.0" value="2"/>
+            </el-select>
           </div>
         </div>
         <div style="flex-grow: 1" v-loading="loading" element-loading-text="正在解析文件...">
@@ -96,7 +102,7 @@
           </el-col>
         </el-scrollbar>
       </div>
-      <el-button class="float-button" circle type="primary" :icon="Plus" @click="alert()"></el-button>
+      <el-button class="float-button" circle type="primary" :icon="Plus"></el-button>
     </div>
   </div>
   <el-dialog v-model="extractionDialogVisible" title="解析文件" width="30%" align-center>
@@ -220,6 +226,7 @@ const checkDialogVisible = ref(false)
 const tree = ref(null);
 // 解析的文档id
 const fid = ref(0);
+const version = ref(null);
 // 当前文档树的根节点id
 const rootId = ref(0);
 // 相应分析点的内容
@@ -350,9 +357,11 @@ const editAnalysisPoint = async () =>{
   }else {
     await HttpClient.post("editAnalysisPoint", {id: focusNode.value, name: analysisEditedName.value}).then(res => {
       if (res.result) {
-        ElMessage({message: "编辑成功", type: 'success'});
+        ElMessage({message: "修改成功", type: 'success'});
         buildTree(rootId.value,fileChosen.value.currDocumentVersion.storageID)
         editAnalysisPointDialog.value = false
+      }else{
+        ElMessage({message: "修改失败", type: 'error'});
       }
     });
   }
