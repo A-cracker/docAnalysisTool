@@ -10,4 +10,5 @@ public interface VersionService {
     public boolean editVersion(int versionId,String name,String description);
     public Version getVersionById(int versionId);
     public boolean deleteVersion(int versionId);
+    public boolean deleteHistoryVersion(int versionId);
 }

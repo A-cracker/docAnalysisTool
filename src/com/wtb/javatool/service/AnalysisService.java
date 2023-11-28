@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface AnalysisService {
-    public Map<String,Integer> extraction(ArrayList<String> lines, String docId);
+    public Map<String,Integer> extraction(ArrayList<String> lines, String docId,String eType,int versionId);
     public List<Node> bulidTree(int root,String fid,int versionId);
     public List<AnalysisContent> getContentById(int id);
     public Integer getRootByFid(String fid,int versionId);
@@ -21,5 +21,4 @@ public interface AnalysisService {
     public boolean deleteAnalysisPoint(int id,String fid,int root,int type,int versionId);
     public int getTreeLayer(String fid);
     public void editAnalysisName(int id,String name);
-
 }

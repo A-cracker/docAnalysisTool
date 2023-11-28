@@ -40,4 +40,11 @@ public class VersionServiceImpl implements VersionService {
         versionMapper.deleteVersionById(versionId);
         return true;
     }
+    @Override
+    public boolean deleteHistoryVersion(int versionId){
+        versionMapper.deleteACByVid(versionId);
+        versionMapper.deleteALsByVid(versionId);
+        analysisPointMapper.deleteAPsByVid(versionId);
+        return true;
+    }
 }

@@ -70,7 +70,7 @@ public class JavaTool extends ActionToolBase {
         String path = this.getResourcePath();
         System.out.println("getRealPath path = " + path);
         //本地调试添加
-        path = path.replace("\\resource\\", "WEB-INF\\");
+//        path = path.replace("\\resource\\", "WEB-INF\\");
         path = path + "other" + File.separator + file;
         return path;
     }
@@ -158,6 +158,8 @@ public class JavaTool extends ActionToolBase {
         String storageId = RequestUtils.getStringParameter(request, "storageID");
         String fn = RequestUtils.getStringParameter(request, "fileName");
         String extension = RequestUtils.getStringParameter(request, "extension");
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        String type = RequestUtils.getStringParameter(request, "type");
         String FACILITY_TYPE_ID = "4487639";
         String PUBLIC_FILE_SERVER_URL = "https://192.168.88.47:10060/servlet/FileManageServlet";
         String fileServiceUrl = documentService.getFileServerByFacilityTypeID(FACILITY_TYPE_ID,
@@ -214,7 +216,7 @@ public class JavaTool extends ActionToolBase {
         } else {
             System.out.println("值不是 ArrayList<String> 类型");
         }
-        Map<String,Integer> res = analysisService.extraction(docContent, storageId);
+        Map<String,Integer> res = analysisService.extraction(docContent, storageId,type,versionId);
         result.put("versionId",res.get("versionId"));
         result.put("root", res.get("root"));
         result.put("msg", "信息提取成功");
@@ -374,9 +376,10 @@ public class JavaTool extends ActionToolBase {
      * 更新覆盖版本树
      */
     @Action
-    public R updateVersion(HttpServletRequest request) throws Exception {
+    public R deleteHistoryVersion(HttpServletRequest request) throws Exception {
         int versionId = RequestUtils.getIntegerParameter(request, "versionId");
-
-        return R.ok().MAP().PRINT().result("");
+        boolean flag = versionService.deleteHistoryVersion(versionId);
+        return R.ok().MAP().PRINT().result(flag);
     }
+
 }

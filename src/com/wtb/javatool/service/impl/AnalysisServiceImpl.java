@@ -31,18 +31,25 @@ public class AnalysisServiceImpl implements AnalysisService {
     @Autowired
     private VersionMapper versionMapper;
     @Override
-    public Map<String,Integer> extraction(ArrayList<String> lines, String docId) {
+    public Map<String,Integer> extraction(ArrayList<String> lines, String docId,String eType,int versionId) {
         Map<String,Integer> res = new HashMap<>();
         int currentId = 0;
         int root = 0;
         int currentLayer=0;
         int aid;
+        int vid = 0;
         //新建版本
-        Version v = new Version();
-        v.setName("新建版本");
-        v.setDescription("");
-        versionMapper.insertVersion(v);
-        res.put("versionId",v.getId());
+        if(eType.equals("new")){
+            Version v = new Version();
+            v.setName("新建版本");
+            v.setDescription("");
+            versionMapper.insertVersion(v);
+            res.put("versionId",v.getId());
+            vid = v.getId();
+        }else if(eType.equals("update")){
+            vid = versionId;
+            res.put("versionId",versionId);
+        }
         HashMap<Integer, Integer> map = new HashMap<>();//记录当前层数对应的分析点id
         String regex = "\\{([^}]+)\\} \\{([^}]+)\\} (.+)";
         // 创建 Pattern 对象
@@ -59,7 +66,7 @@ public class AnalysisServiceImpl implements AnalysisService {
                     AnalysisPoint ap = new AnalysisPoint();
                     ap.setName(content);
                     ap.setFid(docId);
-                    ap.setVersionId(v.getId());
+                    ap.setVersionId(vid);
                     analysisPointMapper.insertAnalysisPoint(ap);
                     root = ap.getId();
                     res.put("root",root);
@@ -77,7 +84,7 @@ public class AnalysisServiceImpl implements AnalysisService {
                         AnalysisPoint ap = new AnalysisPoint();
                         ap.setName(content);
                         ap.setFid(docId);
-                        ap.setVersionId(v.getId());
+                        ap.setVersionId(vid);
                         analysisPointMapper.insertAnalysisPoint(ap);
                         aid = ap.getId();//获取当前分析点id
                         AnalysisLink al = new AnalysisLink();

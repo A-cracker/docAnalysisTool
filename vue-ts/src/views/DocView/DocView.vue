@@ -139,7 +139,7 @@
       <span class="dialog-footer">
         <el-button @click=useHistoryVersion>取消</el-button>
         <el-button plain type="primary" @click="updateVersion">覆盖当前版本</el-button>
-        <el-button type="primary" @click="reExtraction" plain>
+        <el-button type="primary" @click="reExtraction('new')" plain>
           另存为新版本
         </el-button>
       </span>
@@ -279,20 +279,20 @@ const editVersion =async ()=>{
 const deleteVersion = async() =>{
   await HttpClient.post("deleteVersion", {versionId: versionEdit.value}).then(res => {
     if(res.result){
-      ElMessage({message:"版本删除成功",type:'success'});
       HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
         versionList.value = res.result
         console.log(res.result)
       })
       HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
-        version.value = res.result
-        if(version.value == 0){//如果该文档已经没有默认解析版本，解析文档
+        // version.value = res.result
+        if(res.result == 0){//如果该文档已经没有默认解析版本，解析文档
           templateType.value = "需求规格文档"
-          reExtraction()
+          reExtraction('new')
         }else{
           useHistoryVersion()
         }
       })
+      ElMessage({message:"版本删除成功",type:'success'});
     }else{
       ElMessage({message:"版本删除失败",type:'error'});
     }
@@ -305,7 +305,7 @@ const tree = ref(null);
 const fid = ref(0);
 const version = ref(null);
 const versionList:any = ref([]);
-const versionEdit = ref(null);
+const versionEdit:any = ref(null);
 const getVersionDetail = (description,name,id)=>{
   editVersionDialog.value = true;
   versionDescription.value=description;
@@ -344,7 +344,7 @@ const highlightText = (text: string) => {
 const runToolParam = inject<RunToolParam>("runToolParam");
 onMounted(async () => {
   const dragControllerDiv = () => {
-    const resize = document.getElementsByClassName('resize') as HTMLCollectionOf<HTMLElement>;
+    const resize:any = document.getElementsByClassName('resize') as HTMLCollectionOf<HTMLElement>;
     const left = document.getElementsByClassName('left') as HTMLCollectionOf<HTMLElement>;
     const mid = document.getElementsByClassName('mid') as HTMLCollectionOf<HTMLElement>;
     const box = document.getElementsByClassName('box') as HTMLCollectionOf<HTMLElement>;
@@ -353,12 +353,12 @@ onMounted(async () => {
       resize[i].onmousedown = function (e) {
         resize[i].style.background = '#818181';
         const startX = e.clientX;
-        // @ts-ignore
+
         resize[i].left = resize[i].offsetLeft;
 
         document.onmousemove = function (e) {
           const endX = e.clientX;
-          // @ts-ignore
+
           let moveLen = resize[i].left + (endX - startX);
           const maxT = box[i].clientWidth - resize[i].offsetWidth;
 
@@ -377,10 +377,10 @@ onMounted(async () => {
           resize[i].style.background = '#d6d6d6';
           document.onmousemove = null;
           document.onmouseup = null;
-          // @ts-ignore
+
           resize[i].releaseCapture && resize[i].releaseCapture();
         };
-        // @ts-ignore
+
         resize[i].setCapture && resize[i].setCapture();
         return false;
       };
@@ -393,26 +393,25 @@ onMounted(async () => {
     fileChosen.value.extension = res.result.rows[0].extension
     fileChosen.value.objID = res.result.rows[0].objID
   })
-  await HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
-    version.value = res.result
-    if(version.value == 0){//如果该文档还没有默认解析版本，解析文档
-      templateType.value = "需求规格文档"
-      reExtraction()
-    }
-  })
-  versionEdit.value = version.value
   //获取文档版本信息
   await HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
     versionList.value = res.result
     console.log(res.result)
   })
-  //获取当前版本的信息
-  await HttpClient.post("getVersionById", {versionId:version.value}).then(res => {
-    versionName.value = res.result.name
-    versionDescription.value = res.result.description
+  await HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(async res => {
+    if (res.result == 0) {//如果该文档还没有默认解析版本，解析文档
+      templateType.value = "需求规格文档"
+      await reExtraction('new')
+    } else {
+      version.value = res.result
+      //使用历史版本
+      await useHistoryVersion();
+    }
   })
-  //使用历史版本
-  await useHistoryVersion();
+
+  await getCurrentVersion()
+  versionEdit.value = version.value
+
 });
 //选择的模板
 const templateType:any =ref(null)
@@ -477,6 +476,12 @@ const NodeAdd = (node) =>{
   focusNode.value = node.id;
   addAnalysisPointDialog.value = true
 }
+const getCurrentVersion = async ()=>{
+  await HttpClient.post("getVersionById", {versionId:version.value}).then(res => {
+    versionName.value = res.result.name
+    versionDescription.value = res.result.description
+  })
+}
 const addAnalysisPoint = async () => {
   let fid = fileChosen.value.currDocumentVersion.storageID
   if(analysisName.value == ""){
@@ -498,15 +503,15 @@ const NodeDelete = (node) =>{
 }
 const deleteAnalysisPoint = async (type) => {
   let fid = fileChosen.value.currDocumentVersion.storageID
-  await HttpClient.post("deleteAnalysisPoint",{id:focusNode.value,fid:fid,root:rootId.value,type:type,versionId:version.value}).then(res => {
+  await HttpClient.post("deleteAnalysisPoint",{id:focusNode.value,fid:fid,root:rootId.value,type:type,versionId:version.value}).then(async res => {
+    deleteAnalysisPointDialog.value = false
+    await useHistoryVersion()
     if(res.result.type == "success"){
       ElMessage({message:res.result.msg,type:'success'});
     }else{
       ElMessage({message:res.result.msg,type:'error'});
     }
   });
-  deleteAnalysisPointDialog.value = false
-  await useHistoryVersion()
 }
 
 const restore = () => {
@@ -529,7 +534,7 @@ const filterNodeMethod = (value, data) => {
 const onNodeClick = async (e, data) => {
   console.log(data)
   focusNode.value =data.id;
-  ElMessage({message:data.label,type:'success'});
+  ElMessage({message:data.label});
   await HttpClient.post("getContentById",{id:focusNode.value}).then(res => {
     contents.value = res.result
     console.log(contents.value)
@@ -587,23 +592,30 @@ const useHistoryVersion = async() =>{
   }
 }
 const updateVersion = async() =>{
-  await HttpClient.post("updateVersion", {versionId: versionEdit.value}).then(res => {
-    if (res.result) {
-    }
+  await HttpClient.post("deleteHistoryVersion", {versionId: version.value}).then(res => {
+      if(res.result){
+        reExtraction('update')
+      }
   })
 }
-const reExtraction = async() =>{
+const reExtraction = async(type) =>{
   checkDialogVisible.value = false
   extractionDialogVisible.value = false
   let storageID: String = fileChosen.value.currDocumentVersion.storageID
   let fileName: String = fileChosen.value.name
   let extension: String = fileChosen.value.extension
   loading.value = true
-  await HttpClient.post("extraction", {storageID: storageID, fileName: fileName, extension: extension}).then(res => {
+  let vid: number|null = version.value
+  if(vid == null){
+    vid = 0
+  }
+  await HttpClient.post("extraction", {storageID: storageID, fileName: fileName, extension: extension,type:type,versionId:vid}).then(res => {
     fid.value = res.result.fid
     rootId.value = res.result.root
     version.value = res.result.versionId
-    versionList.value.push({id:res.result.versionId,name:"新建版本",description:""})
+    if(type=="new"){
+      versionList.value.push({id:res.result.versionId,name:"新建版本",description:""})
+    }
   })
   let temp_f = fid.value;
   let temp_r = rootId.value;
