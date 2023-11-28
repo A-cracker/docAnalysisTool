@@ -8,6 +8,7 @@ import com.wtb.javatool.util.TreeNodeUtil;
 import com.wtb.javatool.vo.AnalysisContent;
 import com.wtb.javatool.vo.AnalysisLink;
 import com.wtb.javatool.vo.AnalysisPoint;
+import com.wtb.javatool.vo.Version;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.wtb.javatool.util.Node;
@@ -15,6 +16,7 @@ import com.wtb.javatool.util.Node;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,35 +28,41 @@ public class AnalysisServiceImpl implements AnalysisService {
     private AnalysisHierarchyMapper analysisHierarchyMapper;
     @Autowired
     private AnalysisContentMapper analysisContentMapper;
+    @Autowired
+    private VersionMapper versionMapper;
     @Override
-    public int extration(ArrayList<String> lines, String docId) {
+    public Map<String,Integer> extraction(ArrayList<String> lines, String docId) {
+        Map<String,Integer> res = new HashMap<>();
         int currentId = 0;
         int root = 0;
         int currentLayer=0;
         int aid;
+        //新建版本
+        Version v = new Version();
+        v.setName("新建版本");
+        v.setDescription("");
+        versionMapper.insertVersion(v);
+        res.put("versionId",v.getId());
         HashMap<Integer, Integer> map = new HashMap<>();//记录当前层数对应的分析点id
-
         String regex = "\\{([^}]+)\\} \\{([^}]+)\\} (.+)";
         // 创建 Pattern 对象
         Pattern pattern = Pattern.compile(regex);
-
         for (String line : lines) {
             // 创建 Matcher 对象
-//            System.out.println("执行了ex");
             Matcher matcher = pattern.matcher(line);
             if(matcher.matches()){//检查数据是否符合要抽取的格式
                 String type = matcher.group(1).replace("'", "");
                 String docType = matcher.group(2).replace("'", "");
                 String content = matcher.group(3);
-
                 if(docType.equals("Heading 0")){
                     //如果是第一层文件名
                     AnalysisPoint ap = new AnalysisPoint();
                     ap.setName(content);
                     ap.setFid(docId);
+                    ap.setVersionId(v.getId());
                     analysisPointMapper.insertAnalysisPoint(ap);
                     root = ap.getId();
-                    System.out.println(root);
+                    res.put("root",root);
                     currentId = root;
                     currentLayer = 1;
                     map.put(currentLayer,root);
@@ -69,6 +77,7 @@ public class AnalysisServiceImpl implements AnalysisService {
                         AnalysisPoint ap = new AnalysisPoint();
                         ap.setName(content);
                         ap.setFid(docId);
+                        ap.setVersionId(v.getId());
                         analysisPointMapper.insertAnalysisPoint(ap);
                         aid = ap.getId();//获取当前分析点id
                         AnalysisLink al = new AnalysisLink();
@@ -97,11 +106,12 @@ public class AnalysisServiceImpl implements AnalysisService {
                 }
             }
         }
-        return root;
+        return res;
     }
     @Override
-    public List<Node> bulidTree(int root,String fid){
-        List<AnalysisLink> links= analysisHierarchyMapper.selectAllLinksByFid(fid);
+    public List<Node> bulidTree(int root,String fid,int versionId){
+        System.out.println(versionId);
+        List<AnalysisLink> links= analysisHierarchyMapper.selectAllLinksByVid(versionId);
         List<Node> nodes = new ArrayList<>();
         nodes.add(new Node(root,0,analysisPointMapper.selectNameById(root)));
         for(AnalysisLink link : links){
@@ -114,12 +124,12 @@ public class AnalysisServiceImpl implements AnalysisService {
         return analysisContentMapper.selectContentById(id);
     }
     @Override
-    public Integer getRootByFid(String fid){
-        return analysisPointMapper.selectRootByFid(fid);
+    public Integer getRootByFid(String fid,int versionId){
+        return analysisPointMapper.selectRootByFid(fid,versionId);
     }
     @Override
-    public Integer checkExist(String fid){
-        return analysisPointMapper.checkExist(fid);
+    public Integer checkExist(int versionId){
+        return analysisPointMapper.checkExist(versionId);
     }
     @Override
     public void deleteTree(String fid){
@@ -128,10 +138,11 @@ public class AnalysisServiceImpl implements AnalysisService {
         analysisPointMapper.deleteAnalysisPoint(fid);
     }
     @Override
-    public AnalysisPoint addAnalysisPoint(int pid, String fid, String name){
+    public AnalysisPoint addAnalysisPoint(int pid, String fid, String name,int versionId){
         AnalysisPoint ap = new AnalysisPoint();
         ap.setName(name);
         ap.setFid(fid);
+        ap.setVersionId(versionId);
         analysisPointMapper.insertAnalysisPoint(ap);
         AnalysisLink al = new AnalysisLink();
         al.setPid(pid);
@@ -142,7 +153,7 @@ public class AnalysisServiceImpl implements AnalysisService {
         return ap;
     }
     @Override
-    public boolean deleteAnalysisPoint(int id,String fid,int root,int type){
+    public boolean deleteAnalysisPoint(int id,String fid,int root,int type,int versionId){
         if(id == root){
             return false;//不允许删除根节点
         }else {
@@ -151,6 +162,7 @@ public class AnalysisServiceImpl implements AnalysisService {
                     AnalysisPoint ap = new AnalysisPoint();
                     ap.setName("新增分析点");
                     ap.setFid(fid);
+                    ap.setVersionId(versionId);
                     analysisPointMapper.insertAnalysisPoint(ap);
                     AnalysisLink al = new AnalysisLink();
                     al.setCid(ap.getId());

@@ -12,11 +12,13 @@ import com.wtb.javatool.httpApi.CoreApi;
 import com.wtb.javatool.romote.service.CoreRemoteService;
 import com.wtb.javatool.service.AnalysisService;
 import com.wtb.javatool.service.DocumentService;
+import com.wtb.javatool.service.VersionService;
 import com.wtb.javatool.util.Node;
 import com.wtb.javatool.util.R;
 import com.wtb.javatool.util.RunPython;
 import com.wtb.javatool.vo.AnalysisContent;
 import com.wtb.javatool.vo.AnalysisPoint;
+import com.wtb.javatool.vo.Version;
 import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,9 @@ public class JavaTool extends ActionToolBase {
     private DocumentService documentService;
 
     @Autowired
+    private VersionService versionService;
+
+    @Autowired
     private CoreRemoteService coreRemoteService;
 
     @Autowired
@@ -75,12 +80,6 @@ public class JavaTool extends ActionToolBase {
      */
     @Action
     public R test(HttpServletRequest request) {
-//		String base = getRealPath("extraction.py");
-//		String path = "E:\\lab\\file-extraction\\项目文件\\案例 (1)\\案例\\批复的立项方案_测试.docx";
-//		String cmd = String.format("python %s --path=\"%s\"", base, path);
-//		Map<String, Object> map = RunPython.runPythonByRuntime(cmd);
-//		System.out.println(map);
-//		System.out.println("更新过的test");
         try {
             Long bandId = getBandID();
             JSONObject result = coreRemoteService.getDocumentsInBand(bandId);
@@ -132,7 +131,8 @@ public class JavaTool extends ActionToolBase {
     public R buildTree(HttpServletRequest request) {
         int root = RequestUtils.getIntegerParameter(request, "root");
         String fid = RequestUtils.getStringParameter(request, "fid");
-        List<Node> result = analysisService.bulidTree(root, fid);
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        List<Node> result = analysisService.bulidTree(root, fid,versionId);
         Integer layer = analysisService.getTreeLayer(fid);
         Map<String,Object> res= new HashMap<>();
         res.put("tree",result);
@@ -141,7 +141,7 @@ public class JavaTool extends ActionToolBase {
     }
 
     /**
-     * 获取相应分析点的内容ti
+     * 获取相应分析点的内容
      */
     @Action
     public R getContentById(HttpServletRequest request) {
@@ -155,23 +155,17 @@ public class JavaTool extends ActionToolBase {
      */
     @Action
     public R extraction(HttpServletRequest request) throws Exception {
-//		String storageId = "document_1698668284283";
         String storageId = RequestUtils.getStringParameter(request, "storageID");
         String fn = RequestUtils.getStringParameter(request, "fileName");
         String extension = RequestUtils.getStringParameter(request, "extension");
-        // FACILITY_TYPE_ID:4487639
-        // PUBLIC_BIG_FILE_SERVER_URL: ""
         String FACILITY_TYPE_ID = "4487639";
         String PUBLIC_FILE_SERVER_URL = "https://192.168.88.47:10060/servlet/FileManageServlet";
         String fileServiceUrl = documentService.getFileServerByFacilityTypeID(FACILITY_TYPE_ID,
                 PUBLIC_FILE_SERVER_URL, this);
-
         Map<String, Object> params = new HashMap<>();
         params.put("storageID", storageId);
         params.put("accessToken", getAccessToken());
         params.put("action", "getFiles");
-
-
         HttpResponse response = HttpRequest.post(fileServiceUrl)
                 .header("wtbauthc-trust", "true")
                 .form(params)
@@ -183,15 +177,10 @@ public class JavaTool extends ActionToolBase {
         // 存储到Tomcat临时目录
         String tempDir = System.getProperty("catalina.base");
         String fileName = fn + '.' + extension;
-
-        //暂时没用上
         String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-
         String filePath = tempDir + File.separator + "temp" + File.separator + uniqueFileName;
-
         Map<String, Object> result = new HashMap<>();
 		File file = new File(filePath);
-
 		if (!file.exists()) {
 			try{
 				if(file.createNewFile()) {
@@ -215,10 +204,6 @@ public class JavaTool extends ActionToolBase {
                 }
         //测试解析
         String base = getRealPath("extraction.py");
-        System.out.println("base:" + base);
-        System.out.println(filePath);
-//        String cmd = String.format("python3 %s --path=\"%s\" --name=\"%s\"", base, filePath, fileName);
-        //本地
         String cmd = String.format("python %s --path=\"%s\" --name=\"%s\"", base, filePath, fileName);
         Map<String, Object> map = RunPython.runPythonByRuntime(cmd);
         Object value = map.get("result");
@@ -229,9 +214,9 @@ public class JavaTool extends ActionToolBase {
         } else {
             System.out.println("值不是 ArrayList<String> 类型");
         }
-        int root = analysisService.extration(docContent, storageId);
-
-        result.put("root", root);
+        Map<String,Integer> res = analysisService.extraction(docContent, storageId);
+        result.put("versionId",res.get("versionId"));
+        result.put("root", res.get("root"));
         result.put("msg", "信息提取成功");
 			}catch (IOException e) {
 				throw e;
@@ -261,8 +246,8 @@ public class JavaTool extends ActionToolBase {
      */
     @Action
     public R checkExist(HttpServletRequest request) throws Exception {
-        String fid = RequestUtils.getStringParameter(request, "storageID");
-        Integer count = analysisService.checkExist(fid);
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        Integer count = analysisService.checkExist(versionId);
         if (count != 0) {
             return R.ok().MAP().PRINT().result(true);
         } else {
@@ -276,21 +261,33 @@ public class JavaTool extends ActionToolBase {
     @Action
     public R getRoot(HttpServletRequest request) throws Exception {
         String fid = RequestUtils.getStringParameter(request, "storageID");
-        Integer root = analysisService.getRootByFid(fid);
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        Integer root = analysisService.getRootByFid(fid,versionId);
         if(root == null){
             root = 0;
         }
         return R.ok().MAP().PRINT().result(root);
     }
-
+    /**
+    * 获取文件树最新版本id
+    */
+    @Action
+    public R getLatestVersion(HttpServletRequest request) throws Exception {
+        String fid = RequestUtils.getStringParameter(request, "fid");
+        Integer latestVersion = versionService.getLatestVersionByFid(fid);
+        if(latestVersion == null){
+            latestVersion = 0;
+        }
+        return R.ok().MAP().PRINT().result(latestVersion);
+    }
     /**
      * 删除分析点树
      */
     @Action
-    public R deleteTree(HttpServletRequest request) throws Exception {
-        String fid = RequestUtils.getStringParameter(request, "storageID");
-        analysisService.deleteTree(fid);
-        return R.ok().MAP().PRINT().result("删除分析点树成功");
+    public R deleteVersion(HttpServletRequest request) throws Exception {
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        boolean flag = versionService.deleteVersion(versionId);
+        return R.ok().MAP().PRINT().result(flag);
     }
     /**
      * 根据文档objID获取文件信息
@@ -310,7 +307,8 @@ public class JavaTool extends ActionToolBase {
         int pid = RequestUtils.getIntegerParameter(request, "pid");
         String name = RequestUtils.getStringParameter(request, "name");
         String fid = RequestUtils.getStringParameter(request, "fid");
-        AnalysisPoint ap = analysisService.addAnalysisPoint(pid,fid,name);
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        AnalysisPoint ap = analysisService.addAnalysisPoint(pid,fid,name,versionId);
         return R.ok().MAP().PRINT().result(ap);
     }
     /**
@@ -322,8 +320,9 @@ public class JavaTool extends ActionToolBase {
         String fid = RequestUtils.getStringParameter(request, "fid");
         int root = RequestUtils.getIntegerParameter(request, "root");
         int type = RequestUtils.getIntegerParameter(request, "type");
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
         Map<String, String> res = new HashMap<>();
-        if(analysisService.deleteAnalysisPoint(id,fid,root,type)){
+        if(analysisService.deleteAnalysisPoint(id,fid,root,type,versionId)){
             res.put("type","success");
             res.put("msg","删除节点成功");
         }else{
@@ -341,5 +340,43 @@ public class JavaTool extends ActionToolBase {
         String name = RequestUtils.getStringParameter(request, "name");
         analysisService.editAnalysisName(id,name);
         return R.ok().MAP().PRINT().result(true);
+    }
+    /**
+     * 获取所有文档版本
+     */
+    @Action
+    public R getVersionsByFid(HttpServletRequest request) throws Exception {
+        String fid = RequestUtils.getStringParameter(request, "fid");
+        List<Version> list = versionService.getVersionsByFid(fid);
+        return R.ok().MAP().PRINT().result(list);
+    }
+    /**
+     * 修改版本信息
+     */
+    @Action
+    public R editVersion(HttpServletRequest request) throws Exception {
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        String name = RequestUtils.getStringParameter(request, "name");
+        String description = RequestUtils.getStringParameter(request, "description");
+        Boolean res = versionService.editVersion(versionId,name,description);
+        return R.ok().MAP().PRINT().result(res);
+    }
+    /**
+     * 根据id获取版本信息
+     */
+    @Action
+    public R getVersionById(HttpServletRequest request) throws Exception {
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+        Version version = versionService.getVersionById(versionId);
+        return R.ok().MAP().PRINT().result(version);
+    }
+    /**
+     * 更新覆盖版本树
+     */
+    @Action
+    public R updateVersion(HttpServletRequest request) throws Exception {
+        int versionId = RequestUtils.getIntegerParameter(request, "versionId");
+
+        return R.ok().MAP().PRINT().result("");
     }
 }

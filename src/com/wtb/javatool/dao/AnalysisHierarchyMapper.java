@@ -12,10 +12,10 @@ import java.util.List;
 public interface AnalysisHierarchyMapper {
     @Insert("insert into analysis_hierarchy(cid,pid,layer,fid) values(#{cid},#{pid},#{layer},#{fid})")
     void insertAnalysisLink(AnalysisLink al);
-    @Select("select * from analysis_hierarchy where fid = #{fid}")
-    List<AnalysisLink> selectAllLinksByFid(@Param("fid")String fid);
-//    @Select("select min(pid) from analysis_hierarchy WHERE fid = #{fid}")
-//    Integer selectRootByFid(@Param("fid")String fid);
+//    @Select("select * from analysis_hierarchy where fid = #{fid}")
+//    List<AnalysisLink> selectAllLinksByFid(@Param("fid")String fid,@Param("versionId")int versionId);
+    @Select("select cid,pid,layer,t1.fid as fid from analysis_hierarchy as t1 LEFT JOIN (SELECT id from analysis_points WHERE versionId = #{versionId}) as t2 on t1.cid = t2.id")
+    List<AnalysisLink> selectAllLinksByVid( @Param("versionId") int versionId);
     @Delete("delete from analysis_hierarchy where fid = #{fid}")
     int deleteAnalysisHierarchy(@Param("fid")String fid);
     @Select("select DISTINCT layer from analysis_hierarchy WHERE cid = #{cid}")

@@ -11,8 +11,16 @@
           </div>
           <div>
             <el-select v-model="version" placeholder="版本选择">
-              <el-option label="V1.0" value="1"/>
-              <el-option label="V2.0" value="2"/>
+              <el-option
+                  v-for="version in versionList"
+                  :key="version.id"
+                  :label="version.name"
+                  :value="version.id"
+                  @click="useHistoryVersion"
+              >
+                <span style="float: left">{{ version.name }}</span>
+                <a style="float: right;color: var(--el-text-color-secondary);font-size: 13px;" @click.native.stop="getVersionDetail(version.description,version.name,version.id)">详情</a>
+              </el-option>
             </el-select>
           </div>
         </div>
@@ -23,13 +31,12 @@
               :horizontal="horizontal"
               :collapsable="collapsable"
               :label-style="style"
-              :node-draggable="true"
+              :node-draggable="false"
               :default-expand-level="level"
               :only-one-node="onlyOneNode"
               :selected-class-name="selectedClassName"
               :selected-key="focusNode"
               :filter-node-method="filterNodeMethod"
-              :clone-node-drag="cloneNodeDrag"
               :define-menus="defineMenus"
               :node-add="NodeAdd"
               :node-delete="NodeDelete"
@@ -71,7 +78,7 @@
                 <div class="analysis">
                   <div class="analysis-content" style="flex-direction: column" :id=content.index>
                     <el-table border :data="parseTable(content.content)" style="width: 100%" height="500px" :span-method="createSpanMethod(content.content)">
-<!--                      <el-table-column v-for="header in parseHeader(content.content)" :prop=header :label=header />-->
+                      <!--                      <el-table-column v-for="header in parseHeader(content.content)" :prop=header :label=header />-->
                       <template #default="{ row }">
                         <el-table-column align="center" v-for="header in parseHeader(content.content)" :key="header" :prop="header" :label="header">
                           <template #default="{ row }">
@@ -127,12 +134,13 @@
       width="30%"
       align-center
   >
-    <span>该文件已有解析版本，重新解析将另存为新版本，是否重新解析？</span>
+    <span>若重新解析文件，会覆盖当前解析版本，是否另存为新版本？</span>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click=useHistoryVersion>采用历史解析版本</el-button>
-        <el-button type="primary" @click="reExtraction">
-          重新解析
+        <el-button @click=useHistoryVersion>取消</el-button>
+        <el-button plain type="primary" @click="updateVersion">覆盖当前版本</el-button>
+        <el-button type="primary" @click="reExtraction" plain>
+          另存为新版本
         </el-button>
       </span>
     </template>
@@ -193,6 +201,30 @@
       </span>
     </template>
   </el-dialog>
+  <el-dialog
+      v-model="editVersionDialog"
+      title="修改版本信息"
+      width="30%"
+      align-center
+  >
+    <el-form label-position="top" label-width="100px" style="max-width: 460px">
+      <el-form-item label="*版本名：">
+        <el-input placeholder="请输入版本名" v-model="versionName"></el-input>
+      </el-form-item>
+      <el-form-item label="版本描述：">
+        <el-input placeholder="请输入版本描述" v-model="versionDescription"></el-input>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="editVersionDialog = false">取消</el-button>
+        <el-button type="danger" @click="deleteVersion">删除版本</el-button>
+        <el-button type="primary" @click="editVersion">
+          确认修改
+        </el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -205,7 +237,6 @@ import { key } from '@/store'
 import {RunToolParam} from "@/type";
 
 const store = useStore(key)
-
 const data = ref( store.getters["tree/getTreeData"] || {});
 
 const selectedClassName = ref('selectedNode');
@@ -222,11 +253,65 @@ const level = ref(0);
 const extractionDialogVisible = ref(false)
 //是否重新解析对话框
 const checkDialogVisible = ref(false)
+//修改版本信息
+const editVersionDialog = ref(false)
+const versionName = ref('')
+const versionDescription = ref('')
+const editVersion =async ()=>{
+  if(versionName.value==''){
+    ElMessage({message:"请输入版本名",type:'warning'});
+  }else{
+    editVersionDialog.value = false
+    await HttpClient.post("editVersion", {versionId: versionEdit.value,name:versionName.value,description:versionDescription.value}).then(res => {
+      if(res.result){
+        //获取文档版本信息
+        HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
+          versionList.value = res.result
+          console.log(res.result)
+        })
+        ElMessage({message:"修改版本信息成功",type:'success'});
+      }else{
+        ElMessage({message:"修改版本信息失败",type:'error'});
+      }
+    })
+  }
+}
+const deleteVersion = async() =>{
+  await HttpClient.post("deleteVersion", {versionId: versionEdit.value}).then(res => {
+    if(res.result){
+      ElMessage({message:"版本删除成功",type:'success'});
+      HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
+        versionList.value = res.result
+        console.log(res.result)
+      })
+      HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
+        version.value = res.result
+        if(version.value == 0){//如果该文档已经没有默认解析版本，解析文档
+          templateType.value = "需求规格文档"
+          reExtraction()
+        }else{
+          useHistoryVersion()
+        }
+      })
+    }else{
+      ElMessage({message:"版本删除失败",type:'error'});
+    }
+  })
+  editVersionDialog.value = false
+}
 // 文档树DOM
 const tree = ref(null);
 // 解析的文档id
 const fid = ref(0);
 const version = ref(null);
+const versionList:any = ref([]);
+const versionEdit = ref(null);
+const getVersionDetail = (description,name,id)=>{
+  editVersionDialog.value = true;
+  versionDescription.value=description;
+  versionName.value=name;
+  versionEdit.value=id
+}
 // 当前文档树的根节点id
 const rootId = ref(0);
 // 相应分析点的内容
@@ -308,10 +393,29 @@ onMounted(async () => {
     fileChosen.value.extension = res.result.rows[0].extension
     fileChosen.value.objID = res.result.rows[0].objID
   })
+  await HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
+    version.value = res.result
+    if(version.value == 0){//如果该文档还没有默认解析版本，解析文档
+      templateType.value = "需求规格文档"
+      reExtraction()
+    }
+  })
+  versionEdit.value = version.value
+  //获取文档版本信息
+  await HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
+    versionList.value = res.result
+    console.log(res.result)
+  })
+  //获取当前版本的信息
+  await HttpClient.post("getVersionById", {versionId:version.value}).then(res => {
+    versionName.value = res.result.name
+    versionDescription.value = res.result.description
+  })
+  //使用历史版本
   await useHistoryVersion();
 });
 //选择的模板
-const templateType =ref(null)
+const templateType:any =ref(null)
 //内容检索词
 const searchWord = ref("")
 const style = {
@@ -378,7 +482,7 @@ const addAnalysisPoint = async () => {
   if(analysisName.value == ""){
     ElMessage({message:"分析点名不得为空",type:'warning'});
   }else{
-    await HttpClient.post("addAnalysisPoint",{pid:focusNode.value,fid:fid,name:analysisName.value}).then(res => {
+    await HttpClient.post("addAnalysisPoint",{pid:focusNode.value,fid:fid,name:analysisName.value,versionId:version.value}).then(res => {
       console.log(res)
     });
     addAnalysisPointDialog.value = false
@@ -394,7 +498,7 @@ const NodeDelete = (node) =>{
 }
 const deleteAnalysisPoint = async (type) => {
   let fid = fileChosen.value.currDocumentVersion.storageID
-  await HttpClient.post("deleteAnalysisPoint",{id:focusNode.value,fid:fid,root:rootId.value,type:type}).then(res => {
+  await HttpClient.post("deleteAnalysisPoint",{id:focusNode.value,fid:fid,root:rootId.value,type:type,versionId:version.value}).then(res => {
     if(res.result.type == "success"){
       ElMessage({message:res.result.msg,type:'success'});
     }else{
@@ -449,7 +553,7 @@ const filterFile = (fileLists) =>{
 //控制加载
 const loading = ref(false)
 const buildTree = async (root,fid)=>{
-  await HttpClient.post("buildTree", {root: root, fid: fid}).then(res => {
+  await HttpClient.post("buildTree", {root: root, fid: fid,versionId:version.value}).then(res => {
     delete res.result.tree[0].pid;
     store.commit('tree/setTreeData', res.result.tree[0])
     data.value = store.getters["tree/getTreeData"] || {};
@@ -463,26 +567,8 @@ const extraction = async() => {
   if(templateType.value==null){
     ElMessage({message:"请选择解析模板",type:'warning'});
   }else {
-    let storageID: String = fileChosen.value.currDocumentVersion.storageID
-    let fileName: String = fileChosen.value.name
-    let extension: String = fileChosen.value.extension
-    let hasCheck: boolean = false
-    await HttpClient.post("checkExist", {storageID: storageID}).then(res => {
-      hasCheck = res.result
-    })
-    if (hasCheck) {
-      checkDialogVisible.value = true
-    } else {
-      extractionDialogVisible.value = false
-      loading.value = true
-      await HttpClient.post("extraction", {storageID: storageID, fileName: fileName, extension: extension}).then(res => {
-        fid.value = res.result.fid
-        rootId.value = res.result.root
-      })
-      let temp_f = fid.value;
-      let temp_r = rootId.value;
-      await buildTree(temp_r,temp_f);
-    }
+    extractionDialogVisible.value = false
+    checkDialogVisible.value = true
   }
 }
 const useHistoryVersion = async() =>{
@@ -490,8 +576,9 @@ const useHistoryVersion = async() =>{
   extractionDialogVisible.value = false
   let storageID: String = fileChosen.value.currDocumentVersion.storageID
   let root = 0
-  await HttpClient.post("getRoot", {storageID: storageID}).then(res => {
+  await HttpClient.post("getRoot", {storageID: storageID,versionId:version.value}).then(res => {
     root = res.result
+    console.log(root)
     rootId.value = res.result
   })
   if(root!=0) {
@@ -499,20 +586,24 @@ const useHistoryVersion = async() =>{
     await buildTree(root,storageID)
   }
 }
-
+const updateVersion = async() =>{
+  await HttpClient.post("updateVersion", {versionId: versionEdit.value}).then(res => {
+    if (res.result) {
+    }
+  })
+}
 const reExtraction = async() =>{
   checkDialogVisible.value = false
   extractionDialogVisible.value = false
   let storageID: String = fileChosen.value.currDocumentVersion.storageID
   let fileName: String = fileChosen.value.name
   let extension: String = fileChosen.value.extension
-  await HttpClient.post("deleteTree", {storageID: storageID}).then(res => {
-    console.log(res.result)
-  })
   loading.value = true
   await HttpClient.post("extraction", {storageID: storageID, fileName: fileName, extension: extension}).then(res => {
     fid.value = res.result.fid
     rootId.value = res.result.root
+    version.value = res.result.versionId
+    versionList.value.push({id:res.result.versionId,name:"新建版本",description:""})
   })
   let temp_f = fid.value;
   let temp_r = rootId.value;
