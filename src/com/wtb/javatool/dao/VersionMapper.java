@@ -8,7 +8,7 @@ import java.util.List;
 public interface VersionMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     @Insert("insert into version(id,name,description) values(#{id},#{name},#{description})")
-    int insertVersion(Version version);
+    void insertVersion(Version version);
     @Select("SELECT * FROM version AS t1 WHERE EXISTS (SELECT 1 FROM analysis_points AS t2 WHERE t2.fid = #{fid} AND t1.id = t2.versionId)")
     List<Version> selectVersionsByFid(@Param("fid")String fid);
     @Update("UPDATE version SET name = #{name}, description = #{description} WHERE id = #{id}")

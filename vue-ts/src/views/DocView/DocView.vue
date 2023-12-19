@@ -228,8 +228,8 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, getCurrentInstance, ComponentInternalInstance, inject,computed} from 'vue';
-import {ElMessage, TableColumnCtx} from "element-plus";
+import {ref, onMounted,inject,computed} from 'vue';
+import {ElMessage} from "element-plus";
 import {Search,Plus} from "@element-plus/icons-vue";
 import {HttpClient} from "@/network/HttpClient";
 import { useStore } from 'vuex'
@@ -267,7 +267,6 @@ const editVersion =async ()=>{
         //获取文档版本信息
         HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
           versionList.value = res.result
-          console.log(res.result)
         })
         ElMessage({message:"修改版本信息成功",type:'success'});
       }else{
@@ -281,7 +280,6 @@ const deleteVersion = async() =>{
     if(res.result){
       HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
         versionList.value = res.result
-        console.log(res.result)
       })
       HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
         // version.value = res.result
@@ -396,7 +394,6 @@ onMounted(async () => {
   //获取文档版本信息
   await HttpClient.post("getVersionsByFid", {fid: fileChosen.value.currDocumentVersion.storageID}).then(res => {
     versionList.value = res.result
-    console.log(res.result)
   })
   await HttpClient.post("getLatestVersion", {fid: fileChosen.value.currDocumentVersion.storageID}).then(async res => {
     if (res.result == 0) {//如果该文档还没有默认解析版本，解析文档
@@ -430,9 +427,7 @@ const defineMenus = ref([
 //在原先的功能上增加功能
 
 const onMenus = ({ node, command }) => {
-  console.log(node, command,node.id);
   focusNode.value = node.id;
-  console.log(focusNode.value)
   switch(command){
     case 'add' :
       break
@@ -450,7 +445,6 @@ const editAnalysisPointDialog = ref(false)
 const analysisEditedName =ref("")
 
 const NodeEdit = (node) =>{
-  console.log(node.label)
   focusNode.value = node.id;
   editAnalysisPointDialog.value = true
 }
@@ -458,11 +452,11 @@ const editAnalysisPoint = async () =>{
   if(analysisEditedName.value == ""){
     ElMessage({message:"分析点名不得为空",type:'warning'});
   }else {
-    await HttpClient.post("editAnalysisPoint", {id: focusNode.value, name: analysisEditedName.value}).then(res => {
+    await HttpClient.post("editAnalysisPoint", {id: focusNode.value, name: analysisEditedName.value}).then(async res => {
       if (res.result) {
-        ElMessage({message: "修改成功", type: 'success'});
-        buildTree(rootId.value,fileChosen.value.currDocumentVersion.storageID)
+        await buildTree(rootId.value,fileChosen.value.currDocumentVersion.storageID)
         editAnalysisPointDialog.value = false
+        ElMessage({message: "修改成功", type: 'success'});
       }else{
         ElMessage({message: "修改失败", type: 'error'});
       }
@@ -499,7 +493,6 @@ const deleteAnalysisPointDialog = ref(false)
 const NodeDelete = (node) =>{
   focusNode.value = node.id;
   deleteAnalysisPointDialog.value = true
-  console.log(focusNode.value)
 }
 const deleteAnalysisPoint = async (type) => {
   let fid = fileChosen.value.currDocumentVersion.storageID
@@ -524,20 +517,15 @@ const filter = () => {
 }
 
 const filterNodeMethod = (value, data) => {
-  console.log(value)
-  if (!value) return true;
-  console.log(data)
-  console.log(data.label.indexOf(value))
+  if (!value) return true;//如果输入为空，全展示
   return data.label.indexOf(value) !== -1;
 }
 
 const onNodeClick = async (e, data) => {
-  console.log(data)
   focusNode.value =data.id;
   ElMessage({message:data.label});
   await HttpClient.post("getContentById",{id:focusNode.value}).then(res => {
     contents.value = res.result
-    console.log(contents.value)
   });
 }
 //进入的文件
@@ -583,7 +571,6 @@ const useHistoryVersion = async() =>{
   let root = 0
   await HttpClient.post("getRoot", {storageID: storageID,versionId:version.value}).then(res => {
     root = res.result
-    console.log(root)
     rootId.value = res.result
   })
   if(root!=0) {

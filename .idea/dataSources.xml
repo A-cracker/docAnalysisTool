@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:mysql://localhost:3306/file_extraction</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="document@192.168.88.47" uuid="11b2b5c7-d549-4354-88f5-eaeea8e01d3c">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://192.168.88.47:3306/document</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

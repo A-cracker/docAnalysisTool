@@ -2,6 +2,7 @@ package com.wtb.javatool.action;
 
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fy.basejar.tool.ActionToolBase;
@@ -11,6 +12,7 @@ import com.fy.toolhelper.util.RequestUtils;
 import com.wtb.javatool.httpApi.CoreApi;
 import com.wtb.javatool.romote.service.CoreRemoteService;
 import com.wtb.javatool.service.AnalysisService;
+import com.wtb.javatool.service.CodeService;
 import com.wtb.javatool.service.DocumentService;
 import com.wtb.javatool.service.VersionService;
 import com.wtb.javatool.util.Node;
@@ -18,6 +20,7 @@ import com.wtb.javatool.util.R;
 import com.wtb.javatool.util.RunPython;
 import com.wtb.javatool.vo.AnalysisContent;
 import com.wtb.javatool.vo.AnalysisPoint;
+import com.wtb.javatool.vo.Code;
 import com.wtb.javatool.vo.Version;
 import io.swagger.annotations.Api;
 import org.slf4j.Logger;
@@ -28,6 +31,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -42,7 +47,6 @@ import static org.springframework.beans.factory.config.ConfigurableBeanFactory.S
 @ComponentScan("com.wtb.javatool")
 @EnableHttpApi(packages = "com.wtb.javatool") //启用声明式调用
 public class JavaTool extends ActionToolBase {
-
     @Autowired
     private AnalysisService analysisService;
 
@@ -70,7 +74,7 @@ public class JavaTool extends ActionToolBase {
         String path = this.getResourcePath();
         System.out.println("getRealPath path = " + path);
         //本地调试添加
-//        path = path.replace("\\resource\\", "WEB-INF\\");
+        path = path.replace("\\resource\\", "WEB-INF\\");
         path = path + "other" + File.separator + file;
         return path;
     }
@@ -381,5 +385,56 @@ public class JavaTool extends ActionToolBase {
         boolean flag = versionService.deleteHistoryVersion(versionId);
         return R.ok().MAP().PRINT().result(flag);
     }
-
+    @Autowired
+    CodeService codeService;
+    /**
+     * 新增源件
+     */
+    @Action
+    public R addCode(HttpServletRequest request) throws Exception {
+        String name = RequestUtils.getStringParameter(request, "name");
+        Integer type = RequestUtils.getIntegerParameter(request, "type");
+        String comment = RequestUtils.getStringParameter(request, "comment");
+        String date = RequestUtils.getStringParameter(request, "date");
+        String author = RequestUtils.getStringParameter(request, "author");
+        Integer id = codeService.addCode(name,author,type,date,comment);
+        return R.ok().MAP().PRINT().result(id);
+    }
+    @Action
+    public R editCode(HttpServletRequest request) throws Exception {
+        Integer id = RequestUtils.getIntegerParameter(request, "id");
+        String name = RequestUtils.getStringParameter(request, "name");
+        Integer type = RequestUtils.getIntegerParameter(request, "type");
+        String comment = RequestUtils.getStringParameter(request, "comment");
+        String date = RequestUtils.getStringParameter(request, "date");
+        String author = RequestUtils.getStringParameter(request, "author");
+        boolean flag = codeService.editCode(id,name,author,type,date,comment);
+        return R.ok().MAP().PRINT().result(flag);
+    }
+    @Action
+    public R getAllCodes(HttpServletRequest request) throws Exception {
+        List<Code> codes= codeService.getAllCodes();
+        JSONArray ja = new JSONArray();
+        for(Code code : codes){
+            JSONObject jo = new JSONObject();
+            jo.put("codeName",code.getName());
+            jo.put("id",code.getId());
+            jo.put("codeComment",code.getComment());
+            jo.put("codeProps", JSON.parse(code.getProps()));
+            jo.put("codeFunctions",JSON.parse(code.getFunctions()));
+            jo.put("codeCaller",JSON.parse(code.getCallers()));
+            jo.put("codeCallee",JSON.parse(code.getCallees()));
+            jo.put("codeType",code.getType());
+            jo.put("codeAuthor",code.getAuthor());
+            jo.put("codeDate",code.getDate());
+            ja.add(jo);
+        }
+        return R.ok().MAP().PRINT().result(ja);
+    }
+    @Action
+    public R deleteCodes(HttpServletRequest request) throws Exception {
+        List<String> arr = RequestUtils.getJsonArrayParameter(request, "ids");
+        codeService.deleteCodesByIdArr(arr);
+        return R.ok().MAP().PRINT().result("删除成功");
+    }
 }
