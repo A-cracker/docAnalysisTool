@@ -1,0 +1,22 @@
+.artifact-list{
+  display: flex;
+  height: 100%;
+  width:calc(100% - 150px);
+  flex-grow: 1;
+  flex-direction: column;
+  .btn-group{
+    display: flex;
+    margin: 5px
+  }
+  .content{
+    height: calc(100% - 24px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  :deep{
+    .el-pagination{
+      margin-top: 10px;
+    }
+  }
+}

@@ -1,0 +1,29 @@
+.root{
+  height: 100%;
+  display: flex;
+}
+$switchWidth: 84px;
+.switch{
+  position: absolute;
+  left: calc((100% - $switchWidth)/2);
+  bottom: 0;
+  align-items: center;
+  .el-link:hover{
+    background: transparent;
+  }
+}
+:deep{
+  .el-menu-vertical-demo {
+    width: 150px;
+  }
+  .switch .el-link__inner{
+    color: #108ffe;
+    font-size: 13px;
+  }
+  .el-menu-item{
+    height: 45px;
+    span{
+      font-size: 13px;
+    }
+  }
+}

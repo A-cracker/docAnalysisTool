@@ -1,0 +1,27 @@
+.doc-matrix{
+  width:calc(100% - 150px);
+  height: 100%;
+  .tool-bar {
+    height: 5%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    .el-button {
+      margin-top: 5px;
+      margin-left: 5px;
+
+      + .el-icon {
+        margin-left: 5px;
+      }
+    }
+    .el-input {
+      margin: 5px 5px 0 5px;
+    }
+  }
+  .matrix{
+    width:100%;
+    height:calc(100% - 30px);
+    padding: 10px;
+    display: flex;
+  }
+}

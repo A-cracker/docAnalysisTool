@@ -228,7 +228,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted,inject,computed} from 'vue';
+import {ref, onMounted, inject, computed, onUnmounted} from 'vue';
 import {ElMessage} from "element-plus";
 import {Search,Plus} from "@element-plus/icons-vue";
 import {HttpClient} from "@/network/HttpClient";
@@ -340,6 +340,7 @@ const highlightText = (text: string) => {
 };
 
 const runToolParam = inject<RunToolParam>("runToolParam");
+
 onMounted(async () => {
   const dragControllerDiv = () => {
     const resize:any = document.getElementsByClassName('resize') as HTMLCollectionOf<HTMLElement>;
@@ -405,10 +406,8 @@ onMounted(async () => {
       await useHistoryVersion();
     }
   })
-
   await getCurrentVersion()
   versionEdit.value = version.value
-
 });
 //选择的模板
 const templateType:any =ref(null)
@@ -696,7 +695,7 @@ const createSpanMethod = (content) =>{
   }
 }
 </script>
-<style lang="scss" scoped src="./DocView.scss"/>
+<style http scoped src="./DocView.scss" lang="scss"/>
 <style>
 /*搜索高亮*/
 .highlight {
