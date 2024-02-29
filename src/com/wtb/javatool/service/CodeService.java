@@ -9,4 +9,6 @@ public interface CodeService {
     public boolean editCode(int id,String name,String author,int type,String date,String comment);
     public List<Code> getAllCodes();
     public void deleteCodesByIdArr(List<String> idArr);
+    public void updateProps(int id,String props);
+    public void updateFuncs(int id,String funcs);
 }

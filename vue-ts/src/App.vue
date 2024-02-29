@@ -1,7 +1,7 @@
 <template>
   <div id="root">
     <el-menu
-        default-active="/tree"
+        default-active="/extraction"
         class="el-menu-demo"
         mode="horizontal"
         router="router"
@@ -12,7 +12,10 @@
       <el-menu-item index="/fileCode">代码分析</el-menu-item>
     </el-menu>
     <div class="content">
-      <RouterView/>
+<!--      <keep-alive :include="['extraction']">-->
+<!--        -->
+<!--      </keep-alive>-->
+      <router-view></router-view>
     </div>
   </div>
 </template>

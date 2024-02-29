@@ -9,6 +9,8 @@ import com.fy.basejar.tool.ActionToolBase;
 import com.fy.javanode.declarative.annotation.EnableHttpApi;
 import com.fy.toolhelper.tool.ActionTool;
 import com.fy.toolhelper.util.RequestUtils;
+import com.fy.wetoband.tool.Tool;
+import com.sun.xml.fastinfoset.util.StringArray;
 import com.wtb.javatool.httpApi.CoreApi;
 import com.wtb.javatool.romote.service.CoreRemoteService;
 import com.wtb.javatool.service.AnalysisService;
@@ -16,6 +18,7 @@ import com.wtb.javatool.service.CodeService;
 import com.wtb.javatool.service.DocumentService;
 import com.wtb.javatool.service.VersionService;
 import com.wtb.javatool.util.Node;
+import com.wtb.javatool.util.Parser.DocParser;
 import com.wtb.javatool.util.R;
 import com.wtb.javatool.util.RunPython;
 import com.wtb.javatool.vo.AnalysisContent;
@@ -96,37 +99,6 @@ public class JavaTool extends ActionToolBase {
             return R.error().STR().PRINT().result(e);
         }
     }
-    /**
-     * 提取信息接口（调试本地文件）
-     */
-//	@Action
-//	public R extractionLocal(HttpServletRequest request) {
-//		String base = getRealPath("extraction.py");
-//		//获取文件url
-//		String path = "E:\\lab\\file-extraction\\项目文件\\案例 (1)\\案例\\批复的立项方案_测试.docx";
-//		// 创建 File 对象
-//		File file = new File(path);
-//		FileVo f= new FileVo();
-//		f.setTitle(file.getName());
-//		f.setUrl(path);
-//		fileService.uploadFile(f);
-//		String cmd = String.format("python %s --path=\"%s\"", base, path);
-//		Map<String, Object> map = RunPython.runPythonByRuntime(cmd);
-//		Object value = map.get("result");
-//		ArrayList<String> docContent = null;
-//		if (value instanceof ArrayList) {
-//			docContent = (ArrayList<String>) value;
-//		} else {
-//			System.out.println("值不是 ArrayList<String> 类型");
-//		}
-//		int root = analysisService.extration(docContent,f.getId());
-//		Map<String, Object> result = new HashMap<>();
-//		result.put("root",root);
-//		result.put("fid",f.getId());
-//		result.put("msg","信息提取成功");
-//		return R.ok().MAP().PRINT().result(result);
-//
-//	}
 
     /**
      * 构建文档树接口
@@ -136,11 +108,11 @@ public class JavaTool extends ActionToolBase {
         int root = RequestUtils.getIntegerParameter(request, "root");
         String fid = RequestUtils.getStringParameter(request, "fid");
         int versionId = RequestUtils.getIntegerParameter(request, "versionId");
-        List<Node> result = analysisService.bulidTree(root, fid,versionId);
+        List<Node> result = analysisService.bulidTree(root, fid, versionId);
         Integer layer = analysisService.getTreeLayer(fid);
-        Map<String,Object> res= new HashMap<>();
-        res.put("tree",result);
-        res.put("layer",layer);
+        Map<String, Object> res = new HashMap<>();
+        res.put("tree", result);
+        res.put("layer", layer);
         return R.ok().MAP().PRINT().result(res);
     }
 
@@ -186,10 +158,10 @@ public class JavaTool extends ActionToolBase {
         String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
         String filePath = tempDir + File.separator + "temp" + File.separator + uniqueFileName;
         Map<String, Object> result = new HashMap<>();
-		File file = new File(filePath);
-		if (!file.exists()) {
-			try{
-				if(file.createNewFile()) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            try {
+                if (file.createNewFile()) {
                     System.out.println("创建文件");
                     // 将byte数据写入文件
                     try {
@@ -208,30 +180,30 @@ public class JavaTool extends ActionToolBase {
                         throw e;
                     }
                 }
-        //测试解析
-        String base = getRealPath("extraction.py");
-        String cmd = String.format("python %s --path=\"%s\" --name=\"%s\"", base, filePath, fileName);
-        Map<String, Object> map = RunPython.runPythonByRuntime(cmd);
-        Object value = map.get("result");
-        result.put("map", map.get("error").toString());
-        ArrayList<String> docContent = null;
-        if (value instanceof ArrayList) {
-            docContent = (ArrayList<String>) value;
-        } else {
-            System.out.println("值不是 ArrayList<String> 类型");
+                //测试解析
+                String base = getRealPath("extraction.py");
+                String cmd = String.format("python %s --path=\"%s\" --name=\"%s\"", base, filePath, fileName);
+                Map<String, Object> map = RunPython.runPythonByRuntime(cmd);
+                Object value = map.get("result");
+                result.put("map", map.get("error").toString());
+                ArrayList<String> docContent = null;
+                if (value instanceof ArrayList) {
+                    docContent = (ArrayList<String>) value;
+                } else {
+                    System.out.println("值不是 ArrayList<String> 类型");
+                }
+                Map<String, Integer> res = analysisService.extraction(docContent, storageId, type, versionId);
+                result.put("versionId", res.get("versionId"));
+                result.put("root", res.get("root"));
+                result.put("msg", "信息提取成功");
+            } catch (IOException e) {
+                throw e;
+            }
         }
-        Map<String,Integer> res = analysisService.extraction(docContent, storageId,type,versionId);
-        result.put("versionId",res.get("versionId"));
-        result.put("root", res.get("root"));
-        result.put("msg", "信息提取成功");
-			}catch (IOException e) {
-				throw e;
-			}
-		}
         //释放文件
-		if (file.exists()) {
-			file.delete();
-		}
+        if (file.exists()) {
+            file.delete();
+        }
         result.put("fid", storageId);
         result.put("msg", "信息提取成功");
         return R.ok().MAP().PRINT().result(result);
@@ -268,24 +240,26 @@ public class JavaTool extends ActionToolBase {
     public R getRoot(HttpServletRequest request) throws Exception {
         String fid = RequestUtils.getStringParameter(request, "storageID");
         int versionId = RequestUtils.getIntegerParameter(request, "versionId");
-        Integer root = analysisService.getRootByFid(fid,versionId);
-        if(root == null){
+        Integer root = analysisService.getRootByFid(fid, versionId);
+        if (root == null) {
             root = 0;
         }
         return R.ok().MAP().PRINT().result(root);
     }
+
     /**
-    * 获取文件树最新版本id
-    */
+     * 获取文件树最新版本id
+     */
     @Action
     public R getLatestVersion(HttpServletRequest request) throws Exception {
         String fid = RequestUtils.getStringParameter(request, "fid");
         Integer latestVersion = versionService.getLatestVersionByFid(fid);
-        if(latestVersion == null){
+        if (latestVersion == null) {
             latestVersion = 0;
         }
         return R.ok().MAP().PRINT().result(latestVersion);
     }
+
     /**
      * 删除分析点树
      */
@@ -295,6 +269,7 @@ public class JavaTool extends ActionToolBase {
         boolean flag = versionService.deleteVersion(versionId);
         return R.ok().MAP().PRINT().result(flag);
     }
+
     /**
      * 根据文档objID获取文件信息
      */
@@ -302,9 +277,10 @@ public class JavaTool extends ActionToolBase {
     public R getDocumentInfoById(HttpServletRequest request) throws Exception {
         long bandId = RequestUtils.getLongParameter(request, "bandId");
         String objID = RequestUtils.getStringParameter(request, "objID");
-        JSONObject jo = coreRemoteService.getDocumentInfoById(objID,bandId);
+        JSONObject jo = coreRemoteService.getDocumentInfoById(objID, bandId);
         return R.ok().MAP().PRINT().result(jo);
     }
+
     /**
      * 新增分析点
      */
@@ -314,9 +290,10 @@ public class JavaTool extends ActionToolBase {
         String name = RequestUtils.getStringParameter(request, "name");
         String fid = RequestUtils.getStringParameter(request, "fid");
         int versionId = RequestUtils.getIntegerParameter(request, "versionId");
-        AnalysisPoint ap = analysisService.addAnalysisPoint(pid,fid,name,versionId);
+        AnalysisPoint ap = analysisService.addAnalysisPoint(pid, fid, name, versionId);
         return R.ok().MAP().PRINT().result(ap);
     }
+
     /**
      * 删除分析点
      */
@@ -328,15 +305,16 @@ public class JavaTool extends ActionToolBase {
         int type = RequestUtils.getIntegerParameter(request, "type");
         int versionId = RequestUtils.getIntegerParameter(request, "versionId");
         Map<String, String> res = new HashMap<>();
-        if(analysisService.deleteAnalysisPoint(id,fid,root,type,versionId)){
-            res.put("type","success");
-            res.put("msg","删除节点成功");
-        }else{
-            res.put("type","error");
-            res.put("msg","删除失败,不可删除根节点");
+        if (analysisService.deleteAnalysisPoint(id, fid, root, type, versionId)) {
+            res.put("type", "success");
+            res.put("msg", "删除节点成功");
+        } else {
+            res.put("type", "error");
+            res.put("msg", "删除失败,不可删除根节点");
         }
         return R.ok().MAP().PRINT().result(res);
     }
+
     /**
      * 修改分析点名
      */
@@ -344,9 +322,10 @@ public class JavaTool extends ActionToolBase {
     public R editAnalysisPoint(HttpServletRequest request) throws Exception {
         int id = RequestUtils.getIntegerParameter(request, "id");
         String name = RequestUtils.getStringParameter(request, "name");
-        analysisService.editAnalysisName(id,name);
+        analysisService.editAnalysisName(id, name);
         return R.ok().MAP().PRINT().result(true);
     }
+
     /**
      * 获取所有文档版本
      */
@@ -356,6 +335,7 @@ public class JavaTool extends ActionToolBase {
         List<Version> list = versionService.getVersionsByFid(fid);
         return R.ok().MAP().PRINT().result(list);
     }
+
     /**
      * 修改版本信息
      */
@@ -364,9 +344,10 @@ public class JavaTool extends ActionToolBase {
         int versionId = RequestUtils.getIntegerParameter(request, "versionId");
         String name = RequestUtils.getStringParameter(request, "name");
         String description = RequestUtils.getStringParameter(request, "description");
-        Boolean res = versionService.editVersion(versionId,name,description);
+        Boolean res = versionService.editVersion(versionId, name, description);
         return R.ok().MAP().PRINT().result(res);
     }
+
     /**
      * 根据id获取版本信息
      */
@@ -376,6 +357,7 @@ public class JavaTool extends ActionToolBase {
         Version version = versionService.getVersionById(versionId);
         return R.ok().MAP().PRINT().result(version);
     }
+
     /**
      * 更新覆盖版本树
      */
@@ -385,8 +367,10 @@ public class JavaTool extends ActionToolBase {
         boolean flag = versionService.deleteHistoryVersion(versionId);
         return R.ok().MAP().PRINT().result(flag);
     }
+
     @Autowired
     CodeService codeService;
+
     /**
      * 新增源件
      */
@@ -397,9 +381,10 @@ public class JavaTool extends ActionToolBase {
         String comment = RequestUtils.getStringParameter(request, "comment");
         String date = RequestUtils.getStringParameter(request, "date");
         String author = RequestUtils.getStringParameter(request, "author");
-        Integer id = codeService.addCode(name,author,type,date,comment);
+        Integer id = codeService.addCode(name, author, type, date, comment);
         return R.ok().MAP().PRINT().result(id);
     }
+
     @Action
     public R editCode(HttpServletRequest request) throws Exception {
         Integer id = RequestUtils.getIntegerParameter(request, "id");
@@ -408,33 +393,56 @@ public class JavaTool extends ActionToolBase {
         String comment = RequestUtils.getStringParameter(request, "comment");
         String date = RequestUtils.getStringParameter(request, "date");
         String author = RequestUtils.getStringParameter(request, "author");
-        boolean flag = codeService.editCode(id,name,author,type,date,comment);
+        boolean flag = codeService.editCode(id, name, author, type, date, comment);
         return R.ok().MAP().PRINT().result(flag);
     }
+
     @Action
     public R getAllCodes(HttpServletRequest request) throws Exception {
-        List<Code> codes= codeService.getAllCodes();
+        List<Code> codes = codeService.getAllCodes();
         JSONArray ja = new JSONArray();
-        for(Code code : codes){
+        for (Code code : codes) {
             JSONObject jo = new JSONObject();
-            jo.put("codeName",code.getName());
-            jo.put("id",code.getId());
-            jo.put("codeComment",code.getComment());
-            jo.put("codeProps", JSON.parse(code.getProps()));
-            jo.put("codeFunctions",JSON.parse(code.getFunctions()));
-            jo.put("codeCaller",JSON.parse(code.getCallers()));
-            jo.put("codeCallee",JSON.parse(code.getCallees()));
-            jo.put("codeType",code.getType());
-            jo.put("codeAuthor",code.getAuthor());
-            jo.put("codeDate",code.getDate());
+            jo.put("codeName", code.getName());
+            jo.put("id", code.getId());
+            jo.put("codeComment", code.getComment());
+            jo.put("codeProps", JSON.parseArray(code.getProps()));
+            jo.put("codeFunction", JSON.parseArray(code.getFunctions()));
+            jo.put("codeCaller", JSON.parseArray(code.getCallers()));
+            jo.put("codeCallee", JSON.parseArray(code.getCallees()));
+            jo.put("codeType", code.getType());
+            jo.put("codeAuthor", code.getAuthor());
+            jo.put("codeDate", code.getDate());
             ja.add(jo);
         }
         return R.ok().MAP().PRINT().result(ja);
     }
+
     @Action
     public R deleteCodes(HttpServletRequest request) throws Exception {
         List<String> arr = RequestUtils.getJsonArrayParameter(request, "ids");
         codeService.deleteCodesByIdArr(arr);
         return R.ok().MAP().PRINT().result("删除成功");
+    }
+
+    @Action
+    public R updatePropById(HttpServletRequest request) throws Exception {
+        Integer id = RequestUtils.getIntegerParameter(request, "id");
+        String props = RequestUtils.getStringParameter(request, "prop");
+        codeService.updateProps(id,props);
+        return R.ok().MAP().PRINT().result("更新成功");
+    }
+    @Action
+    public R updateFuncById(HttpServletRequest request) throws Exception {
+        Integer id = RequestUtils.getIntegerParameter(request, "id");
+        String funcs = RequestUtils.getStringParameter(request, "functions");
+        codeService.updateFuncs(id,funcs);
+        return R.ok().MAP().PRINT().result("更新成功");
+    }
+    @Action
+    public R testParser(HttpServletRequest request) throws Exception {
+        DocParser parser = new DocParser();
+        parser.testDoc();
+        return R.ok().MAP().PRINT().result("测试");
     }
 }

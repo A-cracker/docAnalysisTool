@@ -3,6 +3,7 @@ package com.wtb.javatool.service.impl;
 import com.wtb.javatool.vo.Code;
 import com.wtb.javatool.dao.CodeMapper;
 import com.wtb.javatool.service.CodeService;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,5 +38,13 @@ public class CodeServiceImpl implements CodeService {
         for(String id : idArr){
             codeMapper.deleteCodeById(Integer.parseInt(id));
         }
+    }
+    @Override
+    public void updateProps(int id,String props){
+        codeMapper.updateProps(props,id);
+    }
+    @Override
+    public void updateFuncs(int id,String funcs){
+        codeMapper.updateFuncs(funcs,id);
     }
 }
